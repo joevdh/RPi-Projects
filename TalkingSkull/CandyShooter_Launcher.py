@@ -69,16 +69,16 @@ try:
                     # Something else happened, handle error, exit, etc.
                     print("Error")
                     clientsocket.close()
-                    break;
+                    break
                 except BrokenPipeError:
                     print("Disconnected")
                     clientsocket.close()
-                    break;
+                    break
                 
                 else:
                     if len(data) == 0:
                         print("Disconnect?")
-                        break;
+                        break
                     
                     print("Received: ", data)
                     if data == "Fire":

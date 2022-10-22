@@ -11,7 +11,9 @@ INTERVAL = 1/250
 
 v = triad_openvr.triad_openvr()
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
+try:
+    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    
     try:
         serversocket.bind(('', TRACKING_PORT))
         
@@ -29,8 +31,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
 
             while True:
                 try:
-                    print('Waiting For Message...')
-                    #data = clientsocket.recv(1024).decode( "UTF-8" ) 
                     start = time.time()
 
                     data =  v.devices["tracker_1"].get_pose_quaternion()
@@ -49,3 +49,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
                     print("Disconnected")
                     clientsocket.close()
                     break
+                
+except KeyboardInterrupt:
+    print("Closing")
+    serversocket.close()
+    clientsocket.close()
+    time.sleep(1)

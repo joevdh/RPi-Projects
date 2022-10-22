@@ -70,7 +70,7 @@ while True:
                 print("Disconnected")
                 s.close()
                 GPIO.output(ConnectionStatusPin, False)
-                break;
+                break
         
             
     
