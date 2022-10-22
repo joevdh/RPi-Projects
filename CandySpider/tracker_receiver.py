@@ -1,4 +1,5 @@
 import time
+import sys
 import struct
 import socket
 import threading
@@ -6,6 +7,11 @@ from vectormath import *
 
 TRACKING_ADDRESS = "JoeSteamDeck"
 TRACKING_PORT = 10056
+
+# Function to print out text but instead of starting a new line it will overwrite the existing line
+def update_text(txt):
+    sys.stdout.write('\r'+txt)
+    sys.stdout.flush()
 
 class TrackerReceiver:
     def __init__(self):
@@ -52,7 +58,7 @@ class TrackerReceiver:
                         
                         self._transform.position = Vector3( trackingInfo[0], trackingInfo[1], trackingInfo[2] )
                         self._transform.rotation = Quaternion( trackingInfo[3], trackingInfo[4], trackingInfo[5], trackingInfo[6] )
-                        print(self._transform)
+                        update_text( str(self._transform) )
                         
                     except BrokenPipeError:
                         print("Disconnected")
