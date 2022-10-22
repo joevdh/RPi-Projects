@@ -44,6 +44,7 @@ try:
                 except KeyError:
                     print("Tracker Not Ready")
                     time.sleep(1)
+                    v = triad_openvr.triad_openvr()
                 
                 except socket.error:
                     # Something else happened, handle error, exit, etc.
