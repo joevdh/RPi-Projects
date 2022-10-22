@@ -44,7 +44,6 @@ try:
                 except KeyError:
                     print("Tracker Not Ready")
                     time.sleep(1)
-                    break
                 
                 except socket.error:
                     # Something else happened, handle error, exit, etc.
