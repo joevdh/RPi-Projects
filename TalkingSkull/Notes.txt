@@ -1,0 +1,15 @@
+Installing OpenCV:
+sudo apt-get install libhdf5-dev libhdf5-serial-dev libhdf5-100
+sudo apt-get install libqtgui4 libqtwebkit4 libqt4-test
+sudo apt-get install libatlas-base-dev
+sudo apt-get install libjasper-dev
+sudo pip3 install opencv-contrib-python==3.4.6.27
+
+pip3 install face-recognition --no-cache-dir
+pip3 install imutils
+
+To run a script at startup:
+sudo crontab -e
+
+@reboot python3 /home/pi/Projects/CandyShooter_Launcher.py
+
