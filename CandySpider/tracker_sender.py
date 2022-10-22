@@ -40,11 +40,18 @@ try:
                     if sleep_time>0:
                         time.sleep(sleep_time)
                     
+                
+                except KeyError:
+                    print("Tracker Not Ready")
+                    time.sleep(1)
+                    break
+                
                 except socket.error:
                     # Something else happened, handle error, exit, etc.
                     print("Error")
                     clientsocket.close()
                     break
+                
                 except BrokenPipeError:
                     print("Disconnected")
                     clientsocket.close()

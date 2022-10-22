@@ -49,11 +49,11 @@ class TrackerReceiver:
                         
                         doubleCount = int(len(data) / 8)
                         trackingInfo = struct.unpack('d'*doubleCount, data)
-                        print(trackingInfo)
                         
                         self._transform.position = Vector3( trackingInfo[0], trackingInfo[1], trackingInfo[2] )
                         self._transform.rotation = Quaternion( trackingInfo[3], trackingInfo[4], trackingInfo[5], trackingInfo[6] )
-
+                        print(self._transform)
+                        
                     except BrokenPipeError:
                         print("Disconnected")
                         sock.close()
