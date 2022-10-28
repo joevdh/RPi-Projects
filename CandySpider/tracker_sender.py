@@ -7,7 +7,7 @@ import threading
 
 TRACKING_PORT = 10056
 MAX_CONNECTIONS = 2
-SAMPLE_INTERVAL = 1/250
+SAMPLE_INTERVAL = 1/10
 
 class SenderServer:
     def __init__(self):
@@ -93,3 +93,4 @@ while True:
         print("Closing")
         serverMgr.Stop()
         time.sleep(1)
+        break
