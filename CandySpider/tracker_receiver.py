@@ -4,29 +4,31 @@ import struct
 import socket
 import threading
 from vectormath import *
+from utils import *
 
 TRACKING_ADDRESS = "JoeSteamDeck"
 TRACKING_PORT = 10056
-
-# Function to print out text but instead of starting a new line it will overwrite the existing line
-def update_text(txt):
-    sys.stdout.write('\r'+txt)
-    sys.stdout.flush()
 
 class TrackerReceiver:
     def __init__(self):
         self._run = True
         self.listenThread = threading.Thread(target=self.ThreadFunc)
-        self._transform : Transform = ()
+        self._transform : Transform = Transform()
         
         self.listenThread.start()
+    
+    @property
+    def transform(self) -> Transform:
+        return self._transform
     
     def IsRunning(self):
         return self._run
     
     def Stop(self):
+        print("Tracker Stopping")
         self._run = False
         self.listenThread.join()
+        print("Tracker Stopped")
     
     def ThreadFunc(self): 
         while self._run:
@@ -56,15 +58,31 @@ class TrackerReceiver:
                         doubleCount = int(len(data) / 8)
                         trackingInfo = struct.unpack('d'*doubleCount, data)
                         
-                        self._transform.position = Vector3( trackingInfo[0], trackingInfo[1], trackingInfo[2] )
-                        self._transform.rotation = Quaternion( trackingInfo[3], trackingInfo[4], trackingInfo[5], trackingInfo[6] )
-                        update_text( str(self._transform) )
+                        if len(trackingInfo) is 7:
+                            # OpenVR
+                            # right-handed system 
+                            # +y is up 
+                            # +x is to the right 
+                            # -z is forward 
+                            # Distance unit is  meters 
+                            
+                            # Spider
+                            # +z is up
+                            # -y is right
+                            # +x is forward
+                            
+                            newPos = Vector3( -trackingInfo[2], -trackingInfo[0], trackingInfo[1] )
+                            newRot = Quaternion( trackingInfo[3], -trackingInfo[6], -trackingInfo[4], trackingInfo[5] )
+                            self._transform = Transform(newPos, newRot)
+                            #update_text( str(self._transform) )
                         
                     except BrokenPipeError:
                         print("Disconnected")
                         sock.close()
                         break
-                    except:
+                    
+                    except Exception as e:
+                        print("Tracker Thread: " + str(e))
                         self._run = False
                         sock.close()
                         break
@@ -76,6 +94,7 @@ if __name__ == '__main__':
     
     try:
         while tracker.IsRunning():
+            update_text( str(tracker.transform) )
             time.sleep(3)
             
     except KeyboardInterrupt:

@@ -1,8 +1,13 @@
-
+import sys
 import math
 from pygame.math import Vector2
 from pygame.math import Vector3
 from vectormath import *
+
+# Function to print out text but instead of starting a new line it will overwrite the existing line
+def update_text(txt):
+    sys.stdout.write('\r'+txt)
+    sys.stdout.flush()
 
 class AXIS:
     FORWARD = 0
@@ -34,6 +39,25 @@ def Clamp(value, minValue, maxValue):
         return maxValue
     else:
         return value
+    
+def IsBetween(value, minValue, maxValue) -> bool:
+    if value < minValue:
+        return False
+    elif value > maxValue:
+        return False
+    else:
+        return True
+    
+def CloseEnough( v1, v2, delta = 0.001 ) -> bool:
+    return math.fabs(v1 - v2) <= delta
+
+def AngleDiff( angleFrom : float , angleTo : float ) -> float:
+    diff = angleTo - angleFrom
+    if diff > 180:
+        diff -= 360
+    elif diff < -180:
+        diff += 360
+    return diff
 
 def VectorToAngles( vForward : Vector3 ) -> Vector2:
     yaw = 0.0
@@ -63,10 +87,14 @@ def AnglesToVector( angles : Vector2 ) -> Vector3:
     
     return Vector3( pitchCos * yawCos, pitchCos * yawSin, pitchSin )
 
-def AnglesToQuat(yaw : float, pitch : float) -> Quaternion:
-        yawRot = Quaternion.from_angle(yaw, (0,0,1))
-        pitchRot = Quaternion.from_angle(pitch, (0,1,0))
+def AnglesToQuat( angles : Vector2 ) -> Quaternion:
+        yawRot = Quaternion.from_angle(angles[ANGLE.YAW], (0,0,1))
+        pitchRot = Quaternion.from_angle(angles[ANGLE.PITCH], (0,-1,0))
         return yawRot * pitchRot
+    
+def QuatToAngles( quat : Quaternion ) -> Vector2:
+    vVec = quat.RotateVector(Vector3(1,0,0))
+    return VectorToAngles(vVec)
 
 def ToSpiderCoords( coordsIn : Vector3 ) -> Vector3:
     # Code coords: x = forward, y = left, z = up

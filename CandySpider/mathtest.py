@@ -1,6 +1,7 @@
 from utils import *
 from pygame.math import Vector2
 from pygame.math import Vector3
+from vectormath import *
 
 def TestMath( result, expected ):
     if ( result != expected ):
@@ -23,6 +24,14 @@ for x in testPairs:
     TestMath(VectorToAngles(x[0]), x[1])
     TestMath(AnglesToVector(x[1]), x[0])
 
-TestMath( AnglesToQuat(0, 0), Quaternion(1,0,0,0) )
-
+for testPair in testPairs:
+    rot = AnglesToQuat( testPair[1] )
+    testVec = rot.RotateVector( Vector3(1,0,0) )
+    print( str(testPair[1]) + " -> " + str(testVec) )
+    TestMath(testVec, testPair[0] )
+    
+x1 = Transform()
+x2 = Transform()
+x3 = x1 * x2
+    
 print("Tests succeeded")

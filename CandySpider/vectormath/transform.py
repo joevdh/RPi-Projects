@@ -21,6 +21,11 @@ class Transform():
     def rotation(self) -> Quaternion:
         return self._rotation
     
+    def __str__(self) -> str:
+        posStr = "Position: " + str( self._position )
+        rotStr = "Rotation: " + str( self._rotation )
+        return str(posStr + " " + rotStr)
+    
     def __mul__(self, other: Transform) -> Transform:
         newQuat : Quaternion = self.rotation * other.rotation
         newPos = self.position + self.rotation.RotateVector(other.position)
