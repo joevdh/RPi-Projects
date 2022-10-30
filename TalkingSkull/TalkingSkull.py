@@ -9,9 +9,7 @@ import RPi.GPIO as GPIO
 import csv
 import time
 import pygame
-import mathutils
-from math import radians
-from math import degrees
+from pygame.math import Vector3
 from imutils.video import VideoStream
 import face_recognition
 import imutils
@@ -19,13 +17,11 @@ import time
 import cv2
 import threading
 import random
-import ultrasonic_distance as dist
-import socket
+from message_server import MessageServer
 
 # Global Constants
 spider_port = 10057
-spider_address = "spiderpi"
-my_socket = socket.socket()
+msgServer : MessageServer = MessageServer(spider_port)
 
 MovementScale = 2.54
 ModelScale = 0.005
@@ -70,6 +66,9 @@ nFrameIndex = 0
 CurrentState = 'Idle'
 StateStartTime = 0
 WaitTime = 0
+SpiderStatus = 'Idle'
+BowlStatus = 'Clear'    # or 'Occupied'
+SpiderPos : Vector3 = Vector3(0,0,0)
 
 DetectionDone = True
 FaceBoxes = []
@@ -349,15 +348,17 @@ def IntroUpdate():
 def WakeUpStart():
     global StateStartTime
     global CurrentState
+    global msgServer
     
     print('WakeUpStart')
     CurrentState = 'WakeUp'
     StateStartTime = time.time()
     StartAnim(random.choice(WakeUpAnims))
+    msgServer.SendMessage("WakeUp")
 
 def WakeUpUpdate():
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
+    if bIsAnimFinished == True and SpiderStatus == "Awake":
         DeliverStart()
 
 def DeliverStart():
@@ -368,10 +369,11 @@ def DeliverStart():
     CurrentState = 'Deliver'
     StateStartTime = time.time()
     StartAnim(random.choice(GoDeliverAnims))
+    msgServer.SendMessage("Deliver")
 
 def DeliverUpdate():
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
+    if bIsAnimFinished == True and SpiderStatus == "DeliveryReady":
         TakePromptStart()
 
 def TakePromptStart():
@@ -385,7 +387,7 @@ def TakePromptStart():
 
 def TakePromptUpdate():
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
+    if bIsAnimFinished == True or SpiderStatus == "CandyGrabDetected":
         OnTakeStart()
 
 def OnTakeStart():
@@ -399,7 +401,8 @@ def OnTakeStart():
 
 def OnTakeUpdate():
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
+    elapsedTime = time.time() - StateStartTime
+    if (bIsAnimFinished == True and SpiderStatus == "Idle") or elapsedTime > 20.0:
         AnyoneElseStart()
 
 def AnyoneElseStart():
@@ -413,7 +416,8 @@ def AnyoneElseStart():
 
 def AnyoneElseUpdate():
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
+    elapsedTime = time.time() - StateStartTime
+    if bIsAnimFinished == True and elapsedTime > 10.0:
         GoHomeStart()
 
 def GoHomeStart():
@@ -424,10 +428,11 @@ def GoHomeStart():
     CurrentState = 'GoHome'
     StateStartTime = time.time()
     StartAnim(random.choice(GoHomeAnims))
+    msgServer.SendMessage("GoHome")
 
 def GoHomeUpdate():
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
+    if bIsAnimFinished == True and SpiderStatus == "HomeAwake":
         GoodbyeStart()
 
 def GoodbyeStart():
@@ -439,6 +444,7 @@ def GoodbyeStart():
     StateStartTime = time.time()
     
     StartAnim(random.choice(GoodbyeAnims))
+    msgServer.SendMessage("Sleep")
 
     # if FacesDetectedCount > 1:
     #     StartAnim(random.choice(NextUpAnims))
@@ -458,110 +464,111 @@ IdleStart()
 
 bExiting = False
 
-while bExiting == False:
+
+while DISPLAY.loop_running() and bExiting == False:
     try:
-        print("Connecting...")
-        my_socket = socket.socket()
-        my_socket.connect((spider_address, spider_port))
+        CurrentTime = time.time()
         
-    except OSError:
-        print("Failed to connect")
-        my_socket.close()
-        time.sleep(1)
+        # grab the frame from the threaded video stream and resize it
+        # to 500px (to speedup processing)
+        frame = vs.read()
+        frame = imutils.resize(frame, width=ImageWidth)
         
-    else:
-        print("Connected!")
-
-        while DISPLAY.loop_running() and bExiting == False:
-            try:
-                CurrentTime = time.time()
+        # Run Face Detection in another thread
+        if DetectionDone == True:
+            for thread in threads:
+                thread.join()
                 
-                # grab the frame from the threaded video stream and resize it
-                # to 500px (to speedup processing)
-                frame = vs.read()
-                frame = imutils.resize(frame, width=ImageWidth)
+            FacePos = []
+            FacesDetectedCount = len(FaceBoxes)
+            
+            for (top, right, bottom, left) in FaceBoxes:
+                #cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 225), 2)
+                FacePos = ((left + right) / 2.0, (top + bottom) / 2.0)
+                LastFaceDetectTime = CurrentTime
                 
-                # Run Face Detection in another thread
-                if DetectionDone == True:
-                    for thread in threads:
-                        thread.join()
-                        
-                    FacePos = []
-                    FacesDetectedCount = len(FaceBoxes)
-                    
-                    for (top, right, bottom, left) in FaceBoxes:
-                        #cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 225), 2)
-                        FacePos = ((left + right) / 2.0, (top + bottom) / 2.0)
-                        LastFaceDetectTime = CurrentTime
-                        
-                    if LastFaceDetectTime == CurrentTime:
-                        FacesDetectedDuration += 1
-                    else:
-                        FacesDetectedDuration = 0
+            if LastFaceDetectTime == CurrentTime:
+                FacesDetectedDuration += 1
+            else:
+                FacesDetectedDuration = 0
 
-                    threads = []
-                    DetectionDone = False
-                    x = threading.Thread(target=run_detection, args=(frame,))
-                    threads.append(x)
-                    x.start()
-                
-                # Clear the skull rotation from last frame
-                model_skull.rxryrz = (0, 0, 0)
-                
-                # Switch action based on the current state
-                if ( CurrentState == 'Idle' ):
-                    IdleUpdate()
+            threads = []
+            DetectionDone = False
+            x = threading.Thread(target=run_detection, args=(frame,))
+            threads.append(x)
+            x.start()
+        
+        # Clear the skull rotation from last frame
+        model_skull.rxryrz = (0, 0, 0)
 
-                elif ( CurrentState == 'Greeting'):
-                    GreetingUpdate()
-                    
-                elif ( CurrentState == 'Intro' ):
-                    IntroUpdate()
+        # Update the status of the spider
+        while msgServer.HasMessage():
+            ( category, data ) = msgServer.GetMessage().split(":", 1)
+            print("Received Spider Message: " + str(category) + " " + str(data))
+            
+            if category is 'Spider':
+                SpiderStatus = data
+            elif category is 'Bowl':
+                BowlStatus = data
+            elif category is 'Position':
+                pos = data.split(",")
+                SpiderPos = Vector3(pos[0], pos[1], pos[2])
+        
+        # Switch action based on the current state
+        if ( CurrentState == 'Idle' ):
+            IdleUpdate()
 
-                elif ( CurrentState == 'WakeUp' ):
-                    WakeUpUpdate()
+        elif ( CurrentState == 'Greeting'):
+            GreetingUpdate()
+            
+        elif ( CurrentState == 'Intro' ):
+            IntroUpdate()
 
-                elif ( CurrentState == 'Deliver' ):
-                    DeliverUpdate()
+        elif ( CurrentState == 'WakeUp' ):
+            WakeUpUpdate()
 
-                elif ( CurrentState == 'TakePrompt' ):
-                    TakePromptUpdate()
+        elif ( CurrentState == 'Deliver' ):
+            DeliverUpdate()
 
-                elif ( CurrentState == 'AnyoneElse' ):
-                    AnyoneElseUpdate()
+        elif ( CurrentState == 'TakePrompt' ):
+            TakePromptUpdate()
 
-                elif ( CurrentState == 'OnTake' ):
-                    OnTakeUpdate()
+        elif ( CurrentState == 'AnyoneElse' ):
+            AnyoneElseUpdate()
 
-                elif ( CurrentState == 'GoHome' ):
-                    GoHomeUpdate()
-                    
-                elif ( CurrentState == 'Goodbye' ):
-                    GoodbyeUpdate()
-                    
-                # Apply LookAt on top of the current anim
-                LookAtUser()
-                
-                # Render the Skull
-                model_skull.draw()
-                model_jaw.draw()
-                
-                k = mykeys.read()
-                if k >-1:
-                    if k==112:
-                        pi3d.screenshot('skull_screenshot.jpg')
-                    elif k==27:
-                        bExiting = True
-                        break
-                    
-            except BrokenPipeError:
-                print("Disconnected")
-                s.close()
-                GPIO.output(ConnectionStatusPin, False)
+        elif ( CurrentState == 'OnTake' ):
+            OnTakeUpdate()
+
+        elif ( CurrentState == 'GoHome' ):
+            GoHomeUpdate()
+            
+        elif ( CurrentState == 'Goodbye' ):
+            GoodbyeUpdate()
+            
+        # Apply LookAt on top of the current anim
+        LookAtUser()
+        
+        # Render the Skull
+        model_skull.draw()
+        model_jaw.draw()
+        
+        k = mykeys.read()
+        if k >-1:
+            if k==112:
+                pi3d.screenshot('skull_screenshot.jpg')
+            elif k==27:
+                bExiting = True
                 break
 
+    except KeyboardInterrupt:
+        break
 
+    except Exception as e:
+        print(e)
+        break
+            
 # Cleanup
+msgServer.Stop()
 mykeys.close()
 DISPLAY.destroy()
 CurrentSound.stop()

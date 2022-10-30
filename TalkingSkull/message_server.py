@@ -46,21 +46,22 @@ class MessageServer:
 
     def SendMessage(self, data):
         with self._mutex:
-            self._clientSocket.sendall(data)
+            self._clientSocket.sendall(data.encode("UTF-8"))
         
     def ListenThreadFunc(self):
         print('Listening...')
         while self._run:
             try:
                 (self._clientSocket, address) = self._serversocket.accept()
+                print('Connected by', address)
                 
-            except Exception as e:
-                #print(e)
+            except socket.timeout:
                 continue
 
-            while self._run:
-                print('Connected by', address)
+            except Exception as e:
+                break
 
+            while self._run:
                 try:
                     data = self._clientSocket.recv(1024).decode( "UTF-8" )
 
@@ -68,13 +69,16 @@ class MessageServer:
                         print("Disconnect?")
                         break
                     
-                    print("Received: ", data)
                     with self._mutex:
                         self._messages.put(data)
 
                 except Exception as e:
                     print(e)
+                    self._clientSocket.close()
+                    self._clientSocket = None
                     break
+
+                
                         
 
 if __name__ == '__main__':
@@ -85,7 +89,8 @@ if __name__ == '__main__':
         
             while msgServer.HasMessage():
                 msg = msgServer.GetMessage()
-                msgServer.SendMessage(msg)
+                print("Received: ", msg)
+                msgServer.SendMessage("Hi Back")
 
             time.sleep(1)
     
