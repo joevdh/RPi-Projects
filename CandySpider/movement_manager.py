@@ -1,11 +1,11 @@
-from math import fabs
 import sys
-from token import NOTEQUAL
-sys.path.insert(0, '/home/pi/Projects/HexSpider/Code/Server')
+sys.path.append(0, '/home/pi/Projects/HexSpider/Code/Server')
 
 from Control import *
 from Servo import *
-from utils import *
+from Shared import *
+from math import fabs
+from token import NOTEQUAL
 from spider_info import SpiderInfo
 import time
 

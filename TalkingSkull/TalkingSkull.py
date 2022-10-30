@@ -4,12 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 Uses the import pi3d method to load *everything*
 """
 
+from Shared import *
 import pi3d
 import RPi.GPIO as GPIO
 import csv
 import time
 import pygame
-from pygame.math import Vector3
 from imutils.video import VideoStream
 import face_recognition
 import imutils
@@ -17,7 +17,7 @@ import time
 import cv2
 import threading
 import random
-from message_server import MessageServer
+
 
 # Global Constants
 spider_port = 10057

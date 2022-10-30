@@ -1,9 +1,5 @@
-from utils import *
+from Shared import *
 from time import sleep
-from vectormath import *
-from pygame import *
-from location import Location
-from message_client import MessageClient
 
 # Holds shared info about the current status
 class SpiderInfo:

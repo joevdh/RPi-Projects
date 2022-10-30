@@ -1,9 +1,7 @@
 import time
 from abc import abstractmethod
 from spider_info import SpiderInfo
-from location import Location
-from vectormath import *
-from utils import *
+from Shared import *
 
 ###################################################
 class StateID:

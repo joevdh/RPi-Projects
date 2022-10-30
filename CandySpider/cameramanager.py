@@ -1,3 +1,4 @@
+from Shared import *
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 from threading import Thread
@@ -6,10 +7,7 @@ import face_recognition
 import time
 import numpy as np
 import cv2
-from location import Location
 from pupil_apriltags import Detector
-from pygame import Vector3
-from utils import *
 
 
 # Camera information

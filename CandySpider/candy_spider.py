@@ -1,15 +1,8 @@
 
+from Shared import *
 from spider_info import SpiderInfo
 from cameramanager import CameraManager
 from movement_manager import MovementManager
-from tracker_receiver import TrackerReceiver
-from location import Location
-from utils import *
-from activity import Activity, ActivityID
-from activityid import ActivityID
-from activity_findtag import FindTag
-from activity_findface import FindFace
-from activity_move_to_tag import MoveToTag
 import time
 
 # Network port to use when connecting to SteamVR tracker server
