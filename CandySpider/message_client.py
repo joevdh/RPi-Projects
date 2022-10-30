@@ -8,10 +8,12 @@ import queue
 class MessageClient:
     def __init__(self, addr, port):
         self._run = True
+        self._bConnected = False
         self._addr = addr
         self._port = port
-        self._clientSocket = None
+        self._clientSocket = socket.socket()
         self._messages : queue.Queue = queue.Queue()
+        self._mutex : threading.Lock = threading.Lock()
         
         self._listenThread = threading.Thread(target=self.ThreadFunc)
         self._listenThread.start()
@@ -37,37 +39,41 @@ class MessageClient:
 
     def SendMessage(self, data):
         with self._mutex:
-            self._clientSocket.sendall(data)
+            if self._bConnected:
+                self._clientSocket.sendall(data.encode("UTF-8"))
     
     def ThreadFunc(self): 
         while self._run:
             try:
                 print("Connecting...")
-                self._clientSocket = socket.socket()
                 self._clientSocket.connect((self._addr, self._port))
-                
-            except OSError:
-                print("Failed to connect")
-                self._clientSocket.close()
+                self._bConnected = True
+                print("Connected!")
+            
+            except socket.timeout:
                 time.sleep(1)
+                continue
                 
-            print("Connected!")
-
+            except Exception as e:
+                break
+                
             while self._run:
                 try:
                     data = self._clientSocket.recv(1024).decode( "UTF-8" )
 
                     if data is None or len(data) == 0:
                         print("Disconnect?")
+                        self._clientSocket.close()
+                        self._bConnected = False
                         break
                     
-                    print("Received: ", data)
                     with self._mutex:
                         self._messages.put(data)
 
                 except Exception as e:
                     print(e)
                     self._clientSocket.close()
+                    self._bConnected = False
                     break
 
         
@@ -76,10 +82,12 @@ if __name__ == '__main__':
     
     try:
         while msgClient.IsRunning():
-            msgServer.SendMessage("")
+            msgClient.SendMessage("Hello")
 
-            while msgServer.HasMessage():
-                msg = msgServer.GetMessage()
+            while msgClient.HasMessage():
+                msg = msgClient.GetMessage()
+                print("Received: " + msg)
+                
             time.sleep(1)
             
     except KeyboardInterrupt:

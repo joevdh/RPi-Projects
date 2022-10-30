@@ -3,11 +3,13 @@ from time import sleep
 from vectormath import *
 from pygame import *
 from location import Location
+from message_client import MessageClient
 
 # Holds shared info about the current status
 class SpiderInfo:
     def __init__(self):
-        self.schedule = ()
+        self.messageMgr : MessageClient = MessageClient("skully", 10057)
+        self.currentState = None
         
         self.rootTransform : Transform = Transform()
         self.headTransformLS : Transform = Transform(Vector3(0.12,0,0))

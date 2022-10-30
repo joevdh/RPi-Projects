@@ -22,15 +22,6 @@ FrontLeftCorner = [0.983952, 0.204809, 0.0481147]
 ParkStartPos = [0.714544, -0.0587816, 0.0412334]
 FrontEdgePos = [1.3426, 0.0333025, 0.0566583]
 
-def ActivityFactory(activityID, spiderInfo : SpiderInfo):
-    activities = {
-        ActivityID.FIND_TAG: FindTag,
-        ActivityID.FIND_FACE: FindFace,
-        ActivityID.MOVE_TO_TAG: MoveToTag,
-    }
- 
-    return activities[activityID](spiderInfo)
-
 
 class CandySpider():
 
@@ -54,39 +45,27 @@ class CandySpider():
         # Refresh readings from the sensors
         self.SyncLatestStatus()
         
-        # Look at a face
-        if self.spiderInfo.faceLocationsWS is not None and len(self.spiderInfo.faceLocationsWS) > 0:
-            faceLoc : Location = self.spiderInfo.faceLocationsWS[0]
+        # Update the current state
+        if self.spiderInfo.currentState is not None:
+            self.spiderInfo.currentState.Update(self.spiderInfo)
+        
+        # # Look at a face
+        # if self.spiderInfo.faceLocationsWS is not None and len(self.spiderInfo.faceLocationsWS) > 0:
+        #     faceLoc : Location = self.spiderInfo.faceLocationsWS[0]
             
-            if time.time() - faceLoc.timeStamp < 1:
-                self.spiderInfo.LookAt(faceLoc.transform.position)
-                self.spiderInfo.MoveTo(faceLoc.transform)
-                print("MoveTo Face")
+        #     if time.time() - faceLoc.timeStamp < 1:
+        #         self.spiderInfo.LookAt(faceLoc.transform.position)
+        #         self.spiderInfo.MoveTo(faceLoc.transform)
+        #         print("MoveTo Face")
                 
-            elif self.spiderInfo.vTargetPos is None:
-                targetTransform : Transform = Transform( Vector3(ParkStartPos), Quaternion.from_angle(180, (0,0,1)) )
-                self.spiderInfo.LookAt(targetTransform.position)
-                self.spiderInfo.MoveTo(targetTransform)
-                print("MoveTo Home")
+        #     elif self.spiderInfo.vTargetPos is None:
+        #         targetTransform : Transform = Transform( Vector3(ParkStartPos), Quaternion.from_angle(180, (0,0,1)) )
+        #         self.spiderInfo.LookAt(targetTransform.position)
+        #         self.spiderInfo.MoveTo(targetTransform)
+        #         print("MoveTo Home")
                 
                 
         self._moveMgr.Update(self.spiderInfo)
-
-        # # Once we no longer have an activity, we're done
-        # if self.activity is None:
-        #     self.spiderInfo.control.relax(True)
-        #     return
-        
-        # # Otherwise, run the Think() function of the current activity after enough time
-        # # has passed
-        # if time() > self.activity.GetNextThink():
-        #     newActivity = self.activity.Think(self.spiderInfo, data)
-            
-        #     if (newActivity == ActivityID.EXIT):
-        #         self.activity = None
-            
-        #     elif (newActivity != ActivityID.CONTINUE):
-        #         self.activity = ActivityFactory(newActivity, self.spiderInfo)
 
     # Read the most recent status from all the sensors and use it to
     # update our knowledge of the state of the world
