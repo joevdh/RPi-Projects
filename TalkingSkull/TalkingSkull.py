@@ -13,10 +13,8 @@ import mathutils
 from math import radians
 from math import degrees
 from imutils.video import VideoStream
-from imutils.video import FPS
 import face_recognition
 import imutils
-import pickle
 import time
 import cv2
 import threading
@@ -25,18 +23,19 @@ import ultrasonic_distance as dist
 import socket
 
 # Global Constants
-port = 10056
+spider_port = 10057
+spider_address = "spiderpi"
 my_socket = socket.socket()
 
 MovementScale = 2.54
 ModelScale = 0.005
 ImageWidth = 500
-ImageHeight = 375
+ImageHeight = 500
 
-LookAtCenterX = 191
-LookAtCenterY = 258
-LookAtPitchScale = 30
-LookAtYawScale = 20
+LookAtCenterX = 500 / 2
+LookAtCenterY = 375 / 2
+LookAtPitchScale = 10
+LookAtYawScale = 10
 LookAtSpeedScale = 0.2
 
 FacesDetectedCount = 0
@@ -50,17 +49,17 @@ TimeStep = 1.0 / FrameRate
 TriggerDistance = 50
 TriggerCount = 0
 
-AnywaysAnims = [ 'Anyways1', 'Anyways2', 'Anyways3' ]
-ComeBackAnims = [ 'ComeBack1', 'ComeBack2', 'ComeBack3', 'ComeBack4', 'ComeBack5', 'ComeBack6' ]
-FidgetAnims = [ 'Fidget1', 'Fidget2', 'Fidget3' ]
-GoAwayAnims = [ 'GoAway1', 'GoAway2', 'GoAway3' ]
-GoodbyeAnims = [ 'Goodbye1', 'Goodbye2', 'Goodbye3']
-GreetingAnims = [ 'Greeting1', 'Greeting2', 'Greeting3' ]
-IntroAnims =[ 'Intro1', 'Intro2' ]
-NextUpAnims = [ 'NextUp1', 'NextUp2', 'NextUp3' ]
-PromptTriggerAnims = [ 'PromptTrigger1', 'PromptTrigger2', 'PromptTrigger3', 'PromptTrigger4' ]
-TriggerAnims = [ 'Trigger1', 'Trigger2', 'Trigger3', 'Trigger4', 'Trigger5' ]
-YourLossAnims = [ 'YourLoss1', 'YourLoss2', 'YourLoss3', 'YourLoss4' ]
+IdleAnims = [ '00_Idle-Base' ]
+GreetingAnims = [ '01_Greeting1', '01_Greeting2', '01_Greeting3', '01_HelloToYou' ]
+IntroAnims = [ '02_HereForCandy' ]
+WakeUpAnims = [ '03_WakeBug1', '03_WakeBug2' ]
+GoDeliverAnims = [ '04_GoDeliver1', '04_GoDeliver2', '04_GoDeliver3' ]
+TakeCandyPromptAnims = [ '05_TakePrompt1', '05_TakePrompt2', '05_TakePrompt3' ]
+AnyoneElseAnims = [ '06_AnyoneElse1', '06_AnyoneElse2', '06_AnyoneElse3' ]
+OnTakeAnims = [ '07_OnTake1', '07_OnTake2', '07_OnTake3' ]
+HangOnAnims = [ '08_HangOn1', '08_HangOn2' ]
+GoHomeAnims = [ '09_GoHome1', '09_GoHome2' ]
+GoodbyeAnims = [ '10_Goodbye1', '10_Goodbye2', '10_Goodbye3', '10_End1', '10_End2', '10_End3', '10_End4']
 
 # Global Variables
 AnimList = {}
@@ -86,7 +85,7 @@ BlendTime = 0.3
 
 pygame.init()
 
-CurrentSound = pygame.mixer.Sound('resources/clips/Idle-Base.wav')
+CurrentSound = pygame.mixer.Sound('resources/2022/00_Idle-Base.wav')
 
 # initialize the video stream and allow the camera sensor to warm up
 # Set the ser to the followng
@@ -97,8 +96,8 @@ vs = VideoStream(usePiCamera=True).start()
 #time.sleep(2.0)
 
 # Setup display and initialise pi3d
-DISPLAY = pi3d.Display.create(x=100, y=100, background=(0, 0, 0, 1), frames_per_second=FrameRate)
-#DISPLAY = pi3d.Display.create(background=(0, 0, 0, 1), frames_per_second=FrameRate)
+#DISPLAY = pi3d.Display.create(x=100, y=100, background=(0, 0, 0, 1), frames_per_second=FrameRate)
+DISPLAY = pi3d.Display.create(background=(0, 0, 0, 1), frames_per_second=FrameRate)
 shader = pi3d.Shader("uv_bump")
 
 # load model_loadmodel
@@ -114,18 +113,6 @@ mykeys = pi3d.Keyboard()
 def Lerp(src, dst, lerpVal):
     return (src * (1.0-lerpVal)) + (dst * lerpVal)
 
-def CheckCandyTrigger():
-    global TriggerCount
-    
-    currentDist = -1 #dist.distance()
-    #print(currentDist)
-    if ( currentDist > 0 and currentDist <= TriggerDistance ):
-        TriggerCount += 1
-    else:
-        TriggerCount = 0
-        
-    return TriggerCount > 3
-
 def run_detection(frame):
     global FaceBoxes
     global DetectionDone
@@ -138,7 +125,7 @@ def LoadAnim(clipName):
     print('Loading ' + clipName)
     
     animData = []
-    with open('resources/clips/' + clipName + '.csv') as csvfile:
+    with open('resources/2022/' + clipName + '.csv') as csvfile:
         csvReader = csv.reader(csvfile, delimiter=',')
         for row in csvReader:
             animData.append(row)
@@ -176,47 +163,44 @@ def LoadAnim(clipName):
         frameData[5] = Lerp(rotZ, 0.0, lerpVal)
         animData[frameIndex] = frameData
         
-    clip = pygame.mixer.Sound('resources/clips/' + clipName + '.wav')
+    clip = pygame.mixer.Sound('resources/2022/' + clipName + '.wav')
     
     AnimList[clipName] = [ animData, clip ]
 
 def LoadAllAnims():
-    LoadAnim('Idle-Base')
-    
-    for clipName in AnywaysAnims:
+    for clipName in IdleAnims:
         LoadAnim(clipName)
-        
-    for clipName in ComeBackAnims:
+
+    for clipName in GreetingAnims:
         LoadAnim(clipName)
-        
-    for clipName in FidgetAnims:
+
+    for clipName in IntroAnims:
         LoadAnim(clipName)
-        
-    for clipName in GoAwayAnims:
+
+    for clipName in WakeUpAnims:
         LoadAnim(clipName)
-        
+
+    for clipName in GoDeliverAnims:
+        LoadAnim(clipName)
+
+    for clipName in TakeCandyPromptAnims:
+        LoadAnim(clipName)
+
+    for clipName in AnyoneElseAnims:
+        LoadAnim(clipName)
+
+    for clipName in OnTakeAnims:
+        LoadAnim(clipName)
+
+    for clipName in HangOnAnims:
+        LoadAnim(clipName)
+
+    for clipName in GoHomeAnims:
+        LoadAnim(clipName)
+
     for clipName in GoodbyeAnims:
         LoadAnim(clipName)
         
-    for clipName in GreetingAnims:
-        LoadAnim(clipName)
-        
-    for clipName in IntroAnims:
-        LoadAnim(clipName)
-        
-    for clipName in NextUpAnims:
-        LoadAnim(clipName)
-        
-    for clipName in PromptTriggerAnims:
-        LoadAnim(clipName)
-        
-    for clipName in TriggerAnims:
-        LoadAnim(clipName)
-        
-    for clipName in YourLossAnims:
-        LoadAnim(clipName)
-        
-    
 def StopAnim():
     global CurrentSound
     global CurrentAnimData
@@ -319,22 +303,14 @@ def IdleStart():
     print('IdleStart')
     CurrentState = 'Idle'
     StateStartTime = time.time()
-    StartAnim('Idle-Base')
+    StartAnim(IdleAnims[0])
     
 def IdleUpdate():
     global StateStartTime
-
-    if CheckCandyTrigger() == True:
-        TriggerCandyStart()
     
     # If we detected a face, go to Greeting
     if FacesDetectedDuration >= 1:
         GreetingStart()
-    
-    elapsedTime = time.time()- StateStartTime
-    if elapsedTime >= 15.0:
-        StartAnim(random.choice(FidgetAnims))
-        StateStartTime = time.time()
 
     bIsAnimFinished = UpdateAnim()
     if bIsAnimFinished == True:
@@ -350,45 +326,10 @@ def GreetingStart():
     StartAnim(random.choice(GreetingAnims))
     
 def GreetingUpdate():
-    if CheckCandyTrigger() == True:
-        TriggerCandyStart()
     bIsAnimFinished = UpdateAnim()
     if bIsAnimFinished == True:
         IntroStart()
 
-def ComeBackStart():
-    global StateStartTime
-    global CurrentState
-    
-    print('ComeBack')
-    CurrentState = 'ComeBack'
-    StateStartTime = time.time()
-    StartAnim(random.choice(ComeBackAnims))
-    
-def ComeBackUpdate():
-    bIsAnimFinished = UpdateAnim()
-    if CurrentClip != 'Idle-Base' and bIsAnimFinished == True:
-        StartAnim('Idle-Base')
-    elif CurrentClip == 'Idle-Base':
-        if FacesDetectedCount > 0:
-            AnywaysStart()
-        elif time.time() - StateStartTime > 5:
-            YourLossStart()
-            
-def AnywaysStart():
-    global StateStartTime
-    global CurrentState
-    
-    print('Anyways')
-    CurrentState = 'Anyways'
-    StateStartTime = time.time()
-    StartAnim(random.choice(AnywaysAnims))
-    
-def AnywaysUpdate():
-    bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True:
-        IntroStart()
-        StartAnim(IntroAnims[1])
 
 def IntroStart():
     global StateStartTime
@@ -397,87 +338,97 @@ def IntroStart():
     print('IntroStart')
     CurrentState = 'Intro'
     StateStartTime = time.time()
-    StartAnim(IntroAnims[0])
+    StartAnim(random.choice(IntroAnims))
      
 def IntroUpdate():
     bIsAnimFinished = UpdateAnim()
-    
-    if CheckCandyTrigger() == True:
-        TriggerCandyStart()
-    
     if bIsAnimFinished == True:
-        #if time.time() - LastFaceDetectTime > LastFaceDetectedTimeOut:
-        #    ComeBackStart()
-        if CurrentClip == IntroAnims[0]:
-            StartAnim(IntroAnims[1])
-        elif CurrentClip == IntroAnims[1]:
-            WaitTriggerStart()
+        WakeUpStart()
 
 
-def WaitTriggerStart():
-    global StateStartTime
-    global CurrentState
-    global WaitTime
-    
-    print('WaitTriggerStart')
-    CurrentState = 'WaitTrigger'
-    StateStartTime = time.time()
-    WaitTime = time.time()
-    StartAnim('Idle-Base')
-    
-def WaitTriggerUpdate():
-    global StateStartTime
-    bIsAnimFinished = UpdateAnim()
-    
-    # If the candy dispensor is triggered, deliver candy
-    if CheckCandyTrigger() == True:
-        TriggerCandyStart()
-        
-    elif time.time() - WaitTime > 20:
-        YourLossStart()
-        
-    elif CurrentClip == 'Idle-Base' and time.time() - StateStartTime > 3:
-        StartAnim(random.choice(PromptTriggerAnims))
-        
-    elif bIsAnimFinished == True:
-        StartAnim('Idle-Base')
-        StateStartTime = time.time()
-
-
-def YourLossStart():
+def WakeUpStart():
     global StateStartTime
     global CurrentState
     
-    print('YourLossStart')
-    CurrentState = 'YourLoss'
+    print('WakeUpStart')
+    CurrentState = 'WakeUp'
     StateStartTime = time.time()
-    StartAnim(random.choice(YourLossAnims))
-    
-def YourLossUpdate():
+    StartAnim(random.choice(WakeUpAnims))
+
+def WakeUpUpdate():
     bIsAnimFinished = UpdateAnim()
     if bIsAnimFinished == True:
-        IdleStart()
-        
+        DeliverStart()
 
-def TriggerCandyStart():
+def DeliverStart():
     global StateStartTime
     global CurrentState
     
-    print('TriggerCandyStart')
-    CurrentState = 'TriggerCandy'
+    print('DeliverStart')
+    CurrentState = 'Deliver'
     StateStartTime = time.time()
-    StartAnim(random.choice(TriggerAnims))
+    StartAnim(random.choice(GoDeliverAnims))
+
+def DeliverUpdate():
+    bIsAnimFinished = UpdateAnim()
+    if bIsAnimFinished == True:
+        TakePromptStart()
+
+def TakePromptStart():
+    global StateStartTime
+    global CurrentState
     
-def TriggerCandyUpdate():
-    elapsedTime = time.time() - StateStartTime
-    #if elapsedTime >= 4 and elapsedTime <= 4.1:
-    #    my_socket.send(bytes( "Fire", "UTF-8" ))
-        
+    print('TakePrompt')
+    CurrentState = 'TakePrompt'
+    StateStartTime = time.time()
+    StartAnim(random.choice(TakeCandyPromptAnims))
+
+def TakePromptUpdate():
+    bIsAnimFinished = UpdateAnim()
+    if bIsAnimFinished == True:
+        OnTakeStart()
+
+def OnTakeStart():
+    global StateStartTime
+    global CurrentState
+    
+    print('OnTake')
+    CurrentState = 'OnTake'
+    StateStartTime = time.time()
+    StartAnim(random.choice(OnTakeAnims))
+
+def OnTakeUpdate():
+    bIsAnimFinished = UpdateAnim()
+    if bIsAnimFinished == True:
+        AnyoneElseStart()
+
+def AnyoneElseStart():
+    global StateStartTime
+    global CurrentState
+    
+    print('AnyoneElse')
+    CurrentState = 'AnyoneElse'
+    StateStartTime = time.time()
+    StartAnim(random.choice(AnyoneElseAnims))
+
+def AnyoneElseUpdate():
+    bIsAnimFinished = UpdateAnim()
+    if bIsAnimFinished == True:
+        GoHomeStart()
+
+def GoHomeStart():
+    global StateStartTime
+    global CurrentState
+    
+    print('GoHome')
+    CurrentState = 'GoHome'
+    StateStartTime = time.time()
+    StartAnim(random.choice(GoHomeAnims))
+
+def GoHomeUpdate():
     bIsAnimFinished = UpdateAnim()
     if bIsAnimFinished == True:
         GoodbyeStart()
-        my_socket.send(bytes( "Fire", "UTF-8" ))
-        
 
 def GoodbyeStart():
     global StateStartTime
@@ -487,68 +438,31 @@ def GoodbyeStart():
     CurrentState = 'Goodbye'
     StateStartTime = time.time()
     
-    if FacesDetectedCount > 1:
-        StartAnim(random.choice(NextUpAnims))
-    else:
-        StartAnim(random.choice(GoodbyeAnims))
+    StartAnim(random.choice(GoodbyeAnims))
+
+    # if FacesDetectedCount > 1:
+    #     StartAnim(random.choice(NextUpAnims))
+    # else:
+    #     StartAnim(random.choice(GoodbyeAnims))
     
 def GoodbyeUpdate():
     bIsAnimFinished = UpdateAnim()
     if bIsAnimFinished == True:
-        WaitLeaveStart()
-
-
-def WaitLeaveStart():
-    global StateStartTime
-    global CurrentState
-    global WaitTime
-    
-    print('WaitLeaveStart')
-    CurrentState = 'WaitLeave'
-    StateStartTime = time.time()
-    WaitTime = time.time()
-    
-    StartAnim('Idle-Base')
-
-def WaitLeaveUpdate():
-    global StateStartTime
-    bIsAnimFinished = UpdateAnim()
-    
-    # If the candy dispensor is triggered, deliver candy
-    if CheckCandyTrigger() == True:
-        TriggerCandyStart()
-    
-    # If we no longer see anyone, go back to idle
-    elif CurrentClip == 'Idle-Base' and time.time() - LastFaceDetectTime > 2:
         IdleStart()
-        
-    # If people haven't left after brief time prompt to leave
-    elif CurrentClip == 'Idle-Base' and time.time() - StateStartTime > 6:
-        StartAnim(random.choice(GoAwayAnims))
 
-    # If its been a long time, go back to idle
-    elif CurrentClip == 'Idle-Base' and time.time() - WaitTime > 30:
-        IdleStart()
-        
-    # If an animation has ended, start the idle anim
-    elif bIsAnimFinished == True:
-        StateStartTime = time.time()
-        StartAnim('Idle-Base')
 
 
 LoadAllAnims()
 
 IdleStart()
 
-#my_socket = socket.socket()
-
 bExiting = False
 
 while bExiting == False:
     try:
         print("Connecting...")
-        #my_socket = socket.socket()
-        #my_socket.connect(("boopi", port))
+        my_socket = socket.socket()
+        my_socket.connect((spider_address, spider_port))
         
     except OSError:
         print("Failed to connect")
@@ -601,31 +515,31 @@ while bExiting == False:
                 elif ( CurrentState == 'Greeting'):
                     GreetingUpdate()
                     
-                elif ( CurrentState == 'Intro'):
+                elif ( CurrentState == 'Intro' ):
                     IntroUpdate()
-                    
-                elif ( CurrentState == 'WaitTrigger'):
-                    WaitTriggerUpdate()
-                
-                elif ( CurrentState == 'YourLoss'):
-                    YourLossUpdate()
 
-                elif ( CurrentState == 'TriggerCandy' ):
-                    TriggerCandyUpdate()
+                elif ( CurrentState == 'WakeUp' ):
+                    WakeUpUpdate()
+
+                elif ( CurrentState == 'Deliver' ):
+                    DeliverUpdate()
+
+                elif ( CurrentState == 'TakePrompt' ):
+                    TakePromptUpdate()
+
+                elif ( CurrentState == 'AnyoneElse' ):
+                    AnyoneElseUpdate()
+
+                elif ( CurrentState == 'OnTake' ):
+                    OnTakeUpdate()
+
+                elif ( CurrentState == 'GoHome' ):
+                    GoHomeUpdate()
                     
                 elif ( CurrentState == 'Goodbye' ):
                     GoodbyeUpdate()
                     
-                elif ( CurrentState == 'WaitLeave' ):
-                    WaitLeaveUpdate()
-                    
-                elif ( CurrentState == 'ComeBack' ):
-                    ComeBackUpdate()
-                    
-                elif ( CurrentState == 'Anyways' ):
-                    AnywaysUpdate()
-                    
-                # Apply LookAt on top of 
+                # Apply LookAt on top of the current anim
                 LookAtUser()
                 
                 # Render the Skull
@@ -644,7 +558,7 @@ while bExiting == False:
                 print("Disconnected")
                 s.close()
                 GPIO.output(ConnectionStatusPin, False)
-                break;
+                break
 
 
 # Cleanup
