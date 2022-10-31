@@ -4,6 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 Uses the import pi3d method to load *everything*
 """
 
+import sys
+sys.path.insert(0, '/home/pi/RPi-Projects')
+
 from Shared import *
 import pi3d
 import RPi.GPIO as GPIO
@@ -21,7 +24,6 @@ import random
 
 # Global Constants
 spider_port = 10057
-msgServer : MessageServer = MessageServer(spider_port)
 
 MovementScale = 2.54
 ModelScale = 0.005
@@ -81,6 +83,8 @@ AnimValues = [0,0,0,0,0,0]
 LastAnimValues = [0,0,0,0,0,0]
 BlendValue = 1
 BlendTime = 0.3
+
+msgServer : MessageServer = MessageServer(spider_port)
 
 pygame.init()
 
@@ -348,17 +352,32 @@ def IntroUpdate():
 def WakeUpStart():
     global StateStartTime
     global CurrentState
-    global msgServer
+    
     
     print('WakeUpStart')
     CurrentState = 'WakeUp'
     StateStartTime = time.time()
     StartAnim(random.choice(WakeUpAnims))
-    msgServer.SendMessage("WakeUp")
 
 def WakeUpUpdate():
+    global msgServer
+
     bIsAnimFinished = UpdateAnim()
-    if bIsAnimFinished == True and SpiderStatus == "Awake":
+    if bIsAnimFinished == True:
+        msgServer.SendMessage(SpiderCommand.WAKEUP)
+        
+def WakeUpWaitStart():
+    global StateStartTime
+    global CurrentState
+    global msgServer
+    
+    print('WakeUpWaitStart')
+    CurrentState = 'WakeUpWait'
+    StateStartTime = time.time()
+    StartAnim(random.choice(IdleAnims))
+
+def WakeUpWaitUpdate():
+    if SpiderStatus == SpiderStatus.AWAKE:
         DeliverStart()
 
 def DeliverStart():

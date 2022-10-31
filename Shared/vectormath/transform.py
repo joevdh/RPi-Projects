@@ -1,5 +1,5 @@
 from __future__ import annotations
-from vectormath import Quaternion
+from .quaternions import Quaternion
 from pygame import Vector3
 
 

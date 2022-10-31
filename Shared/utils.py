@@ -2,7 +2,7 @@ import sys
 import math
 from pygame.math import Vector2
 from pygame.math import Vector3
-from vectormath import *
+from .vectormath import *
 
 # Function to print out text but instead of starting a new line it will overwrite the existing line
 def update_text(txt):

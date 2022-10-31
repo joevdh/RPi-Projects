@@ -1,5 +1,5 @@
 from __future__ import annotations
-from vectormath import *
+from .vectormath import *
 from time import time
 
 class Location:

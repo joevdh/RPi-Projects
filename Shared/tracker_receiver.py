@@ -3,8 +3,8 @@ import sys
 import struct
 import socket
 import threading
-from vectormath import *
-from utils import *
+from .vectormath import *
+from .utils import *
 
 TRACKING_ADDRESS = "JoeSteamDeck"
 TRACKING_PORT = 10056

@@ -1,7 +1,7 @@
-from utils import *
+from .utils import *
 from pygame.math import Vector2
 from pygame.math import Vector3
-from vectormath import *
+from .vectormath import *
 
 def TestMath( result, expected ):
     if ( result != expected ):

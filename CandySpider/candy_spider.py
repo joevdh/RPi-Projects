@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/pi/RPi-Projects/Shared')
 
 from Shared import *
 from spider_info import SpiderInfo

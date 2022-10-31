@@ -1,5 +1,6 @@
 import sys
-sys.path.append(0, '/home/pi/Projects/HexSpider/Code/Server')
+sys.path.insert(0, '/home/pi/Projects/HexSpider/Code/Server')
+sys.path.insert(0, '/home/pi/RPi-Projects')
 
 from Control import *
 from Servo import *
