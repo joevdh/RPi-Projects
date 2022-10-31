@@ -36,15 +36,6 @@ camera_info["params"] = [576.934, 576.783, 320.447, 252.998]
 # Fisheye Camera Distortion Matrix
 camera_info["D"] = np.array([[0.33811303762215894], [2.127039047309599], [-14.330835990951366], [28.997372956196564]])
 
-# RESOLUTION = (320, 240)
-# camera_info["res"] = RESOLUTION
-
-# camera_info["K"] =np.array([[294.7418496410262, 0.0, 161.1429603214219], [0.0, 294.6844486519016, 122.82741772910052], [0.0, 0.0, 1.0]])
-# # The non-default elements of the K array, in the AprilTag specification
-# camera_info["params"] = [294.7418496410262, 294.6844486519016, 161.1429603214219, 122.82741772910052]
-
-# camera_info["D"]=np.array([[0.33828033719359313], [1.7786196418210463], [-14.89558980128113], [41.346791104898834]])
-
 
 # Fisheye flag
 camera_info["fisheye"] = True

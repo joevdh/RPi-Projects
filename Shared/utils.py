@@ -51,6 +51,9 @@ def IsBetween(value, minValue, maxValue) -> bool:
 def CloseEnough( v1, v2, delta = 0.001 ) -> bool:
     return math.fabs(v1 - v2) <= delta
 
+def Lerp(src, dst, lerpVal):
+    return (src * (1.0-lerpVal)) + (dst * lerpVal)
+
 def AngleDiff( angleFrom : float , angleTo : float ) -> float:
     diff = angleTo - angleFrom
     if diff > 180:

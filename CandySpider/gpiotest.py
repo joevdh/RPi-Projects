@@ -1,12 +1,20 @@
 import RPi.GPIO as GPIO
 import time
 
-ledPin= 21
+ledPin= 16
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(ledPin , GPIO.OUT)
+GPIO.setup(ledPin , GPIO.IN)
 
 while True:
-  GPIO.output(ledPin , GPIO.HIGH)
-  time.sleep(1)
-  GPIO.output(ledPin , GPIO.LOW)
-  time.sleep(1)
+  try:
+    if GPIO.input(ledPin):
+      print("On")
+    else:
+      print("Off")
+    time.sleep(0.05)
+    
+  except KeyboardInterrupt:
+    break
+  
+  
+GPIO.cleanup()

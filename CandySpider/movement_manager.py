@@ -16,6 +16,7 @@ TURN_SCALE = ROBOT_TURN_INCREMENT / REAL_TURN_INCREMENT
 
 ROBOT_STEP_INCREMENT : float = 35.0
 TARGET_POSITION_TOLERANCE = 0.15
+TARGET_YAW_TOLERANCE = 5
 
 HEAD_YAW_MIN = -80
 HEAD_YAW_MAX = 80
@@ -45,8 +46,9 @@ class MovementManager:
         if settings.flTargetYaw is not None:
             rootAngles : Vector2 = QuatToAngles(settings.rootTransform.rotation)
             flTurnDelta = AngleDiff( rootAngles[0], settings.flTargetYaw )
-            #print("Target: " + str(settings.flTargetYaw) + " RootAngles: " + str(rootAngles) )
-            #print("TurnAngle " + str(flTurnDelta))
+            
+            if fabs( flTurnDelta ) < TARGET_YAW_TOLERANCE:
+                settings.flTargetYaw = None
             
         if settings.vTargetPos is not None and fabs(flTurnDelta) < 45:
             vToTarget : Vector3 = settings.vTargetPos - settings.rootTransform.position
@@ -63,6 +65,10 @@ class MovementManager:
                     
         if vMoveVec != Vector3(0,0,0) or flTurnDelta != 0:
             self.Move(vMoveVec, flTurnDelta)
+        
+        elif self.bRelax == True:
+            self.bRelax = False
+            self.control.relax(1)
 
         # if self._bMove is True:
         #     vMoveVec : Vector3 = self._vTargetMovePos - settings.rootTransform.position

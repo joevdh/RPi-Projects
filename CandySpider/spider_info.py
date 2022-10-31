@@ -1,6 +1,7 @@
 from Shared import *
 from time import sleep
 
+###################################################
 # Holds shared info about the current status
 class SpiderInfo:
     def __init__(self):
@@ -18,6 +19,8 @@ class SpiderInfo:
         
         self.vTargetPos = None
         self.flTargetYaw  = None
+        
+        self.bRelax = False
     
     def GetHeadTransformWS(self) -> Transform:
         return self.rootTransform * self.headTransformLS

@@ -113,9 +113,6 @@ cam = pi3d.Camera(eye=(0,0,-3.5))
 # Fetch key presses
 mykeys = pi3d.Keyboard()
 
-def Lerp(src, dst, lerpVal):
-    return (src * (1.0-lerpVal)) + (dst * lerpVal)
-
 def run_detection(frame):
     global FaceBoxes
     global DetectionDone

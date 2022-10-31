@@ -1,28 +1,25 @@
 import sys
-sys.path.append('/home/pi/RPi-Projects/Shared')
+sys.path.insert(0, '/home/pi/RPi-Projects')
 
 from Shared import *
 from spider_info import SpiderInfo
 from cameramanager import CameraManager
 from movement_manager import MovementManager
 import time
+import pygame
+import RPi.GPIO as GPIO
 
 # Network port to use when connecting to SteamVR tracker server
 TRACKING_SERVER_ADDRESS = "JoeSteamDeck"
 TRACKING_SERVER_PORT = 10056
 
-CavePos = [0.256026, -0.157764, 0.0418488]
-FrontRightCorner = [1.0302, -0.244911, 0.0475839]
-FrontLeftCorner = [0.983952, 0.204809, 0.0481147]
-ParkStartPos = [0.714544, -0.0587816, 0.0412334]
-FrontEdgePos = [1.3426, 0.0333025, 0.0566583]
-
-
 class CandySpider():
 
     def __init__(self):
+        pygame.init()
+        GPIO.setmode(GPIO.BCM)
+        
         self.spiderInfo = SpiderInfo()
-        #self.activity : Activity = ActivityFactory(ActivityID.FIND_FACE, self.spiderInfo)
         self._camMgr : CameraManager = CameraManager()
         self._moveMgr : MovementManager = MovementManager()
         self._tracker : TrackerReceiver = TrackerReceiver()
@@ -31,6 +28,7 @@ class CandySpider():
         self._camMgr.Stop()
         self._tracker.Stop()
         self._moveMgr.control.relax(True)
+        GPIO.cleanup()
         
     def Update(self):
         
@@ -73,8 +71,6 @@ class CandySpider():
             
             self.spiderInfo.rootTransform = Transform(trackerXform.position, fixedQuat)
         
-        headXformWS : Transform = self.spiderInfo.GetHeadTransformWS()
-
         # Update the world-space locations of the faces and tags.
         with self._camMgr.mutex:
             bCleared = False
@@ -88,6 +84,7 @@ class CandySpider():
                         bCleared  = True
                     
                     print("MainThread time: " + str(time.time()))
+                    headXformWS : Transform = self.spiderInfo.GetHeadTransformWS()
                     faceTransformWS = headXformWS * faceLocationLS.transform
                     self.spiderInfo.faceLocationsWS.append( Location(faceTransformWS, faceLocationLS.timeStamp) )
                     
